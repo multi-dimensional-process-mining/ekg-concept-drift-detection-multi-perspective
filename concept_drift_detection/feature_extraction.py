@@ -131,6 +131,9 @@ class FeatureExtraction:
         self.pr.record_performance(f"extract_task_subgraphs_nodes_{self.num_windows}")
 
     def apply_feature_extraction(self, features, actor="", actor_1="", actor_2=""):
+        '''
+        Adapted from Adams et al. (2021) https://github.com/niklasadams/explainable_concept_drift_pm
+        '''
         feature_vectors = [[] for i in range(0, self.num_windows)]
         for feature in features:
             results = []
@@ -271,6 +274,7 @@ class FeatureExtraction:
 
     def pca_reduction(self, features_np, dimensions, normalize=False, normalize_function='max'):
         '''Reduces a time series of features
+        Adapted from Adams et al. (2021) https://github.com/niklasadams/explainable_concept_drift_pm
         features: Two dimensional array of features
         dimensions: Target dimensionality. Use 'mle' for automated choice of dimensionality
           Automated choice of dimensionality can sometimes fail, a manual choice of dimensionality

@@ -51,16 +51,3 @@ def plot_trends(np_feature_vectors, feature_names, window_size, analysis_directo
         else:
             plt.savefig(f"{analysis_directory}\\{window_size}day_{penalty_file_name}{subgroup}_{feature}", bbox_inches='tight')
         plt.close()
-
-
-def plot_cosine_similarity(np_feature_vectors, feature_names, window_size, analysis_directory):
-    df_cosine_similarities = pd.DataFrame()
-    df_cosine_similarities['time_window'] = [i for i in range(1, np.shape(np_feature_vectors)[0])]
-    for index in range(1, np.shape(np_feature_vectors)[0]):
-        A = np_feature_vectors[index - 1]
-        B = np_feature_vectors[index]
-        cosine_similarity = np.dot(A, B) / (norm(A) * norm(B))
-        df_cosine_similarities.loc[df_cosine_similarities['time_window'] == index, 'cs'] = cosine_similarity
-    df_cosine_similarities.plot.line(x='time_window', y='cs')
-    plt.savefig(f"{analysis_directory}\\cos_sim_{feature_names}_{window_size}")
-    plt.show()

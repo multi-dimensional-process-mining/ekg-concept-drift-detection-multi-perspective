@@ -11,7 +11,6 @@ import glob
 from concept_drift_detection.feature_extraction import FeatureExtraction
 from concept_drift_detection import change_point_detection
 from concept_drift_detection import change_point_visualization
-from concept_drift_detection import cause_effect
 
 
 def get_feature_extractor_objects(graph, feature_names, window_sizes, eg, exclude_cluster=""):
@@ -298,45 +297,6 @@ def detect_collab_drift(graph, window_sizes, penalties, detailed_analysis, colla
         df_all_collab_drift_points.to_csv(f"{collab_drift_feature_directory}\\collab_cp_{feature_set_name}.csv")
 
 
-def plot_all_actor_activity(graph, analysis_directory, event_graph):
-    actor_activity_trend_directory = os.path.join(analysis_directory, "actor_drift", "overall_frequency")
-    os.makedirs(actor_activity_trend_directory, exist_ok=True)
-
-    window_sizes = [1, 7]
-    # actor_list = event_graph.query_actor_list()
-    actor_list = ["User_87", "User_30"]
-
-    list_f_extr = get_feature_extractor_objects(graph, ["total_task_count"], window_sizes, event_graph)
-
-    for actor_to_plot in actor_list:
-        for index, window_size in enumerate(window_sizes):
-            # generate mv time series for specified features/actor/window size
-            actor_feature_names, actor_feature_vector = list_f_extr[index].apply_feature_extraction(
-                ["total_task_count"], actor=actor_to_plot)
-            change_point_visualization.plot_trends(actor_feature_vector, actor_feature_names, window_size,
-                                                   actor_activity_trend_directory, subgroup=actor_to_plot)
-
-
-def eval_cause_effect(graph, window_size, feature_set_primary, feature_set_secondary, cp_1, cp_2, event_graph,
-                      exclude_cluster):
-    all_features = list(feature_set_primary.values()) + list(feature_set_secondary.values())
-    all_features = [item for sublist in all_features for item in sublist]
-    f_extr = FeatureExtraction(graph, event_graph, exclude_cluster)
-    f_extr.query_subgraphs_for_feature_extraction(window_size, all_features)
-
-    feature_names_primary, feature_vector_primary = f_extr.apply_feature_extraction(
-        list(feature_set_primary.values())[0])
-    reduced_feature_vector_primary = f_extr.pca_reduction(feature_vector_primary, 'mle', normalize=True,
-                                                          normalize_function="max")
-    feature_names_secondary, feature_vector_secondary = f_extr.apply_feature_extraction(
-        list(feature_set_secondary.values())[0])
-    res = cause_effect.granger_causality(reduced_feature_vector_primary, feature_vector_secondary,
-                                         feature_names_secondary, cp_1, cp_2, p_value=0.05)
-    cause_effect.draw_ca(res, feature_vector_primary, feature_names_primary, feature_vector_secondary,
-                         feature_names_secondary,
-                         store_path="bpic_2017.pdf")
-
-
 def eval_subgroup_vs_process_drift(window_size, pen_process, pen_subgroup, subgroup_type, feature_set_name_subgroup,
                                    feature_set_name_process_level, analysis_directory):
     margin = 5
@@ -515,16 +475,8 @@ def calculate_change_magnitude_percentiles(graph, window_size, penalty, feature_
         for change_point in interval_comparison:
             signal_changes = df_signal_magnitudes_feature[(change_point, "mean")].tolist()
             signal_changes_absolute = [abs(change) for change in signal_changes]
-            # df_change_magnitude_percentiles.loc["P.25", (feature_set_name, change_point)] = np.quantile(signal_changes_absolute, .25)
-            # df_change_magnitude_percentiles.loc["P.50", (feature_set_name, change_point)] = np.quantile(signal_changes_absolute, .50)
-            # df_change_magnitude_percentiles.loc["P.60", (feature_set_name, change_point)] = np.percentile(signal_changes_absolute, 60)
-            # df_change_magnitude_percentiles.loc["P.75", (feature_set_name, change_point)] = np.percentile(signal_changes_absolute, 75)
-            # df_change_magnitude_percentiles.loc["P.90", (feature_set_name, change_point)] = np.percentile(signal_changes_absolute, 90)
             df_change_magnitude_percentiles.loc["max", (feature_set_name, change_point)] = max(signal_changes_absolute)
             df_change_magnitude_percentiles.loc["mean", (feature_set_name, change_point)] = np.mean(signal_changes_absolute)
-            # df_change_magnitude_percentiles.loc["1<M<5", (feature_set_name, change_point)] = len([i for i in signal_changes_absolute if 1 < i <= 5])
-            # df_change_magnitude_percentiles.loc["5<M<10", (feature_set_name, change_point)] = len([i for i in signal_changes_absolute if 1 < i <= 5])
-            # df_change_magnitude_percentiles.loc["10<M", (feature_set_name, change_point)] = len([i for i in signal_changes_absolute if 1 < i <= 5])
 
     df_change_magnitude_percentiles.to_csv(
         f"{signal_magnitude_directory}\\signal_change_magnitude_avg_mean_{penalty}.csv")
@@ -539,8 +491,6 @@ def compare_tasks_vs_activity_actvity_pair(graph, penalty, analysis_directory, e
 
     df_task_change_magnitudes = pd.read_csv(
         f"{signal_magnitude_directory}\\signal_magnitudes_{penalty}_task_relative.csv", index_col=0, header=[0, 1])
-    df_variant_change_magnitudes = pd.read_csv(
-        f"{signal_magnitude_directory}\\signal_magnitudes_{penalty}_task_variant_relative.csv", index_col=0, header=[0, 1])
     df_activity_change_magnitudes = pd.read_csv(
         f"{signal_magnitude_directory}\\signal_magnitudes_{penalty}_activity_relative.csv", index_col=0, header=[0, 1])
     df_df_case_activity_change_magnitudes = pd.read_csv(
@@ -553,7 +503,6 @@ def compare_tasks_vs_activity_actvity_pair(graph, penalty, analysis_directory, e
     column_index = pd.MultiIndex.from_tuples(column_tuples, names=["type", "measure"])
 
     df_task_detailed_analysis = pd.DataFrame(index=index, columns=column_index)
-    df_variant_detailed_analysis = pd.DataFrame(index=index, columns=column_index)
 
     for cp, tasks in cp_task_dict.items():
         for task in tasks:
